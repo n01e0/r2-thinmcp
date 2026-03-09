@@ -96,6 +96,15 @@ args = [
 ]
 ```
 
+## Agent guidance (explicit)
+
+- If you want machine-friendly output, prefer r2 `*j` commands (e.g. `ij`, `aflj`, `iSj`).
+- You can call those commands in **either** way:
+  - `pipe_cmd("aflj")` (returns JSON text)
+  - `pipe_cmdj("aflj")` (returns parsed JSON object)
+- Both are acceptable. Choose whichever is easier for your client/runtime.
+- If your client handles only text well, `pipe_cmd` + `*j` is usually simplest.
+
 ## Notes
 
 - Session lifecycle is explicit: open -> command(s) -> close.

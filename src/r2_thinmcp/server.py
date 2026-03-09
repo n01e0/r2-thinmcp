@@ -191,7 +191,13 @@ def pipe_list() -> list[dict[str, Any]]:
 
 @mcp.tool()
 def pipe_cmd(session_id: str, command: str, max_output_chars: int = DEFAULT_MAX_OUTPUT_CHARS) -> dict[str, Any]:
-    """Run pipe.cmd(command) on an existing session."""
+    """Run arbitrary r2 command via pipe.cmd on an existing session.
+
+    Note:
+    - For structured output, pass a `*j` command (for example: `ij`, `aflj`, `iSj`).
+      The output will be JSON text, which clients/agents can parse.
+    - This is generally equivalent to using `pipe_cmdj` for `*j` commands.
+    """
     if STORE.readonly and _is_dangerous_command(command):
         raise ValueError("Command blocked in readonly mode")
 
@@ -209,7 +215,11 @@ def pipe_cmd(session_id: str, command: str, max_output_chars: int = DEFAULT_MAX_
 
 @mcp.tool()
 def pipe_cmdj(session_id: str, command: str) -> dict[str, Any]:
-    """Run pipe.cmdj(command) on an existing session."""
+    """Run pipe.cmdj(command) on an existing session.
+
+    Convenience wrapper for JSON commands. In many MCP clients, using
+    `pipe_cmd` with a `*j` command is also fine. Either style is acceptable.
+    """
     if STORE.readonly and _is_dangerous_command(command):
         raise ValueError("Command blocked in readonly mode")
 
