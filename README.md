@@ -21,6 +21,7 @@ This avoids repeated startup/analysis overhead from stateless `r2 -e ...` invoca
 - `pipe_cmd(session_id, command, max_output_chars?)`
 - `pipe_cmdj(session_id, command)`
 - `pipe_list_commands(session_id, prefix?, cursor?, page_size?, source_command?)`
+  - `source_command` 未指定時は `prefix` 先頭に応じて自動選択（例: `af` -> `a?` / prefixなし -> `?`）
 
 ## Install
 

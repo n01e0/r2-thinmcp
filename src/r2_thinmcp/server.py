@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import re
 import threading
 import time
 import uuid
@@ -75,6 +76,7 @@ class SessionStore:
 
 STORE = SessionStore(readonly=False)
 DEFAULT_MAX_OUTPUT_CHARS = 200_000
+ANSI_COLOR_RE = re.compile(r"\x1b\[[0-9;]*m")
 
 
 def _is_dangerous_command(command: str) -> bool:
@@ -106,6 +108,32 @@ def _trim_output(text: str, max_chars: int) -> tuple[str, bool]:
 
 def _normalize_cursor(cursor: int) -> int:
     return cursor if cursor >= 0 else 0
+
+
+def _extract_command_token(help_line: str) -> str | None:
+    cleaned = ANSI_COLOR_RE.sub("", help_line).strip()
+    if cleaned.startswith("|"):
+        cleaned = cleaned[1:].strip()
+    if not cleaned:
+        return None
+    if cleaned.startswith(("Usage", "Append", "Prefix", "Environment:", "Examples:")):
+        return None
+
+    token = cleaned.split()[0]
+    if token in {"|", ":", "-"}:
+        return None
+
+    for sep in ("[", "(", "<"):
+        token = token.split(sep, 1)[0]
+
+    if "=" in token and not token.startswith(("==", "!=", ">=", "<=")):
+        token = token.split("=", 1)[0]
+
+    token = token.rstrip(":;,")
+    if token.startswith("%"):
+        token = "%"
+
+    return token or None
 
 
 @mcp.tool()
@@ -191,7 +219,7 @@ def pipe_list_commands(
     prefix: str = "",
     cursor: int = 0,
     page_size: int = 200,
-    source_command: str = "??",
+    source_command: str | None = None,
 ) -> dict[str, Any]:
     """Return command names discovered from r2 help output with pagination."""
     if page_size <= 0:
@@ -199,18 +227,19 @@ def pipe_list_commands(
     if page_size > 5_000:
         page_size = 5_000
 
+    selected_source_command = source_command or (f"{prefix[0]}?" if prefix else "?")
+
     session = STORE.get(session_id)
     with session.lock:
-        raw = session.pipe.cmd(source_command)
+        raw = session.pipe.cmd(selected_source_command)
+
+        if not raw.strip() and selected_source_command != "?":
+            selected_source_command = "?"
+            raw = session.pipe.cmd(selected_source_command)
 
     commands: set[str] = set()
     for line in raw.splitlines():
-        stripped = line.strip()
-        if not stripped:
-            continue
-        if stripped.startswith(("Usage", "warning", "WARN", "#", "--")):
-            continue
-        cmd = stripped.split()[0]
+        cmd = _extract_command_token(line)
         if cmd:
             commands.add(cmd)
 
@@ -229,7 +258,7 @@ def pipe_list_commands(
         "cursor": start,
         "next_cursor": next_cursor,
         "page_size": page_size,
-        "source_command": source_command,
+        "source_command": selected_source_command,
     }
 
 
