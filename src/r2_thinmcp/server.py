@@ -36,8 +36,14 @@ class SessionStore:
 
     def open(self, target: str, flags: list[str] | None = None) -> PipeSession:
         clean_flags = [f.strip() for f in (flags or []) if f and f.strip()]
-        if self._readonly and "-r" not in clean_flags:
-            clean_flags.append("-r")
+
+        # NOTE:
+        # radare2 defaults to readonly unless -w is passed.
+        # Using -r here would be wrong (-r expects a rarun2 profile) and breaks
+        # r2pipe's startup handshake because -q0 gets consumed as -r argument.
+        if self._readonly:
+            if "-w" in clean_flags:
+                raise ValueError("-w is not allowed in readonly mode")
 
         pipe = r2pipe.open(target, flags=clean_flags)
         session = PipeSession(
