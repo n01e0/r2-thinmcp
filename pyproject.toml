@@ -1,0 +1,25 @@
+[build-system]
+requires = ["hatchling>=1.25.0"]
+build-backend = "hatchling.build"
+
+[project]
+name = "r2-thinmcp"
+version = "0.1.0"
+description = "Thin MCP wrapper around persistent r2pipe sessions"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "n01e0" }]
+dependencies = [
+  "mcp>=1.6.0",
+  "r2pipe>=1.9.5",
+]
+
+[project.scripts]
+r2-thinmcp = "r2_thinmcp.server:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/r2_thinmcp"]
+
+[tool.ruff]
+line-length = 100
