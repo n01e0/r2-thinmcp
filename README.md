@@ -21,70 +21,86 @@ This avoids repeated startup/analysis overhead from stateless `r2 -e ...` invoca
 - `pipe_cmd(session_id, command, max_output_chars?)`
 - `pipe_cmdj(session_id, command)`
 - `pipe_list_commands(session_id, prefix?, cursor?, page_size?, source_command?)`
-  - `source_command` 未指定時は `prefix` 先頭に応じて自動選択（例: `af` -> `a?` / prefixなし -> `?`）
+  - `source_command` omitted: auto-select from prefix (`af` -> `a?`, no prefix -> `?`)
 
-## Install
-
-```bash
-git clone https://github.com/n01e0/r2-thinmcp.git
-cd r2-thinmcp
-python -m venv .venv
-source .venv/bin/activate
-pip install -e .
-```
-
-Requirements:
+## Requirements
 
 - Python 3.10+
 - `radare2` installed and available in `PATH`
+- `uv` (`uvx`) installed
 
-## Run (stdio)
+## Install (uv)
+
+### Option A: no local clone (recommended)
 
 ```bash
-r2-thinmcp
+uv tool install --force --from git+https://github.com/n01e0/r2-thinmcp r2-thinmcp
 ```
 
-Readonly mode (recommended when using untrusted prompts):
+Then run:
 
 ```bash
 r2-thinmcp --readonly
 ```
 
-## MCP client config example
+### Option B: local development clone
 
-### Claude Desktop
-
-```json
-{
-  "mcpServers": {
-    "r2-thinmcp": {
-      "command": "r2-thinmcp",
-      "args": ["--readonly"]
-    }
-  }
-}
+```bash
+git clone https://github.com/n01e0/r2-thinmcp.git
+cd r2-thinmcp
+uv sync
+uv run r2-thinmcp --readonly
 ```
 
-### VS Code (Copilot MCP)
+## Claude Code setup (uvx)
 
-```json
-{
-  "servers": {
-    "r2-thinmcp": {
-      "type": "stdio",
-      "command": "r2-thinmcp",
-      "args": []
-    }
-  },
-  "inputs": []
-}
+Add as stdio MCP server:
+
+```bash
+claude mcp add --transport stdio r2-thinmcp -- \
+  uvx --from git+https://github.com/n01e0/r2-thinmcp r2-thinmcp --readonly
+```
+
+Useful follow-ups:
+
+```bash
+claude mcp list
+claude mcp get r2-thinmcp
+```
+
+## Codex CLI setup (uvx)
+
+### Option A: via CLI
+
+```bash
+codex mcp add r2-thinmcp -- \
+  uvx --from git+https://github.com/n01e0/r2-thinmcp r2-thinmcp --readonly
+```
+
+Check:
+
+```bash
+codex mcp list
+```
+
+### Option B: via `~/.codex/config.toml`
+
+```toml
+[mcp_servers.r2-thinmcp]
+command = "uvx"
+args = [
+  "--from",
+  "git+https://github.com/n01e0/r2-thinmcp",
+  "r2-thinmcp",
+  "--readonly",
+]
 ```
 
 ## Notes
 
 - Session lifecycle is explicit: open -> command(s) -> close.
-- `pipe_list_commands` is best-effort; it parses output from `source_command` (default: `??`).
-- In readonly mode, obvious write/shell commands are blocked by prefix checks.
+- `pipe_list_commands` is best-effort and parses r2 help output.
+- `--readonly` blocks obvious write/shell command prefixes.
 
 ## License
 
